@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<title>消防设施设备展示列表页</title>
+		<script src="js/jquery-1.8.3.min.js"></script>
+		<script src="js/data.js"></script>
+		<link rel="stylesheet" href="css/common.css">
+		<link rel="stylesheet" href="css/style.css">
+		<style>
+			body{
+				background: #f5f5f5;
+			}
+		</style>
+	</head>
+	<body>
+		<div class="model_list_content container" id="modelList">
+			<div class="model_list_box">
+				<div class="model_list_nr">
+					<div class="model_list_yi">
+						一级标题
+					</div>
+					<ul class="model_xx" style="display: block;">
+						<!-- <div class="model_list_er">
+							二级标题
+						</div> -->
+						<li>
+							内容内容内容
+						</li>
+						<li>
+							内容内容内容
+						</li>
+					</ul>
+				</div>
+			</div>
+			<div class="model_list_box">
+				<div class="model_list_nr">
+					<div class="model_list_yi">
+						一级标题
+					</div>
+					<ul class="model_xx">
+						<li>
+							内容内容内容
+						</li>
+						<li>
+							内容内容内容
+						</li>
+					</ul>
+				</div>
+			</div>
+			
+		</div>
+	</body>
+	<script>
+		// $(".model_list_box .model_list_yi").click(function(){
+		// 	if($(this).hasClass("on")){
+		// 		$(this).removeClass("on");
+		// 		$(this).parents(".model_list_box").find(".model_xx").removeClass("on");
+		// 	}else{
+		// 		$(this).addClass("on");
+		// 		$(this).parents(".model_list_box").find(".model_xx").addClass("on");
+		// 	}
+		// })
+		
+		
+		
+		
+		$(function(){
+					var firstList = new Array();
+					var modelList = data();
+					var str = "";
+					for (i=0;i<modelList.length;i++) {
+						var firstName = modelList[i].fileName;
+						if(firstList.indexOf(firstName)<0){
+							firstList.push(firstName);
+						}
+					}
+					for (i=0;i<firstList.length;i++) {
+						str += '<div class="model_list_box">';
+						str += '	<div class="model_list_nr">';
+						str += '		<div class="model_list_yi">';
+						str += firstList[i];
+						var childlist = modelList[i].fileName;
+						str += '		</div>';
+						if(i==0){
+							str += '		<ul class="model_xx" style="display: block;">';
+						}else{
+							str += '		<ul class="model_xx" >';
+						}
+						
+						for(j=0;j<modelList.length;j++){
+							if(firstList[i] ==  modelList[j].fileName){
+								str += '			<li data-index="'+j+'">';
+								str += modelList[j].data.name;
+								str += '			</li>';
+							}
+						}
+						str += '		</ul>';
+						str += '	</div>';
+						str += '</div>';
+					}
+					
+					$("#modelList").html(str);
+					
+					$(".model_list_box .model_list_yi").click(function(){
+						$(this).parents(".model_list_box").addClass("active").siblings().removeClass("active");
+						$(this).parents(".model_list_box").find(".model_xx").slideDown();
+						$(this).parents(".model_list_box").siblings().find(".model_xx").slideUp();
+					});
+					
+					$(".model_xx li").click(function(){
+						var index = $(this).attr("data-index");
+						window.location = "3D-model.html?index=" +index;
+					});
+				});
+	</script>
+</html>

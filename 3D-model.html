@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>消防设施设备展示</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<script src="js/jquery-1.8.3.min.js"></script>
+		<!-- 引入前端框架vue.js -->
+		<script src="js/vue@2.5.16.min.js"></script> 
+		<!-- vuejs的库element-ui -->
+		<script src="js/index.js"></script>
+		<!--引入three.js三维引擎-->
+		<script src="js/three.min92.js"></script>
+		<script src="js/inflate.min.js"></script>
+		<script src="js/FBXLoader.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/Detector.js"></script>
+		<script src="js/stats.min.js"></script>
+		<script src="js/data.js"></script>
+		<!-- element-ui样式 -->
+		<!-- <link rel="stylesheet" href="http://www.yanhuangxueyuan.com/js/element-ui/index.css"> -->
+		<link rel="stylesheet" href="css/index.css">
+		<style>
+			#context{
+			  white-space: pre-wrap;
+			}
+		</style>
+	</head>
+
+	<body>
+		<div id="app" z-index="105">
+			<div class="jindu" v-show="progressBool">
+			    <el-progress color="rgb(6,142,206)" :text-inside="true" :stroke-width="20" :percentage="progressValue"></el-progress>
+			</div>
+			<div class="title">
+				<p>{{ currentModelData.name }}</p>
+				<div class="title_xian"></div>
+			</div>
+			<div class="yuyin" circle @click.stop="zhouClick()">
+				复位
+			</div>
+			<div class="wenzi" circle @click.stop="questionClick()">
+				讲解
+			</div>
+			<div class="banquan">
+				Copyright © 2020 华诺联动 All Rights Reserved.
+			</div>
+			<div class="shuiyin">
+				<!-- <img src="image/xfx.png" /> -->
+			</div>
+			<div id="context" style="display:none;" >
+				<div>
+					<audio :src="currentModelData.sound" controls="controls"></audio>
+				</div>
+				<div v-html='currentModelData.introduction'>
+					{{ currentModelData.introduction }}
+				</div>
+			</div>
+			<div class="tishi" circle @click.stop="tishiClick()">
+				<i><img src="./htmlimg/帮助.png" alt="" width="20" height="20"></i>
+			</div>
+			<div id="tishi_wb" style="display: none;">
+				<p class="caozuo_pc">
+					1.旋转：按住左键不放上下左右拖动，可以旋转整个场景
+					<br><br>
+					2.缩放：滚动鼠标中键可以缩放模型
+					<br><br>
+					3.交互：通过UI按钮可以和对三维模型进行交互操作，预览模型相关信息
+				</p>
+				<p class="caozuo_yd">
+					1.旋转：手指按住屏幕不放上下左右拖动，可以旋转整个场景
+					<br><br>
+					2.缩放：两指相反方向滑动放大，反则缩小
+					<br><br>
+					3.交互：通过UI按钮可以和对三维模型进行交互操作，预览模型相关信息
+				</p>
+			</div>
+		</div>
+	
+		<script>
+			function GetQueryValue(queryName) {
+			     var query = decodeURI(window.location.search.substring(1));
+			     var vars = query.split("&");
+			     for (var i = 0; i < vars.length; i++) {
+		         var pair = vars[i].split("=");
+			         if (pair[0] == queryName) { return pair[1]; }
+			    }
+			     return null;
+			 }
+			var index=GetQueryValue('index');
+			
+			
+			if ( ! Detector.webgl ) Detector.addGetWebGLMessage();
+			var container, stats, controls;
+			var camera, scene, renderer, light;
+			var clock = new THREE.Clock();
+			var mixer;
+			var fileArr = data();
+			var modelArr = [];
+			init();
+			animate();
+			
+			function onProgress(xhr) {
+			  vm.progressBool = true
+			  console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+			  vm.$data.progressValue = Math.floor(xhr.loaded / xhr.total * 100)
+			  if (vm.progressValue === 100) {
+			    vm.$data.progressValue = 0
+			  }
+			}
+			function init() {
+			
+				container = document.createElement( 'div' );
+				document.body.appendChild( container ); 
+				// camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 200000 );
+				// camera.position.set( 100, 5000, 1000 );
+				
+				scene = new THREE.Scene();
+				scene.background = new THREE.Color( 0xa0a0a0 );
+				var width = window.innerWidth;
+				var height = window.innerHeight;
+				var k = width / height;
+				var s = 70;
+				// camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+				camera = new THREE.PerspectiveCamera( 23, width / height, 1, 1000 );
+				camera.position.set(162, 164, 341);
+				var length = camera.position.length()
+				camera.lookAt(scene.position);
+				controls = new THREE.OrbitControls( camera );
+				//controls.target.set( 0, 100, 0 );
+				controls.update();
+				//scene.fog = new THREE.Fog( 0xa0a0a0, 200, 1000 );
+
+// 				light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+// 				light.position.set( 0, 200, 0 );
+// 				scene.add( light );
+// 
+// 				light = new THREE.DirectionalLight( 0xffffff );
+// 				light.position.set( 0, 200, 100 );
+// 				light.castShadow = true;
+// 				light.shadow.camera.top = 180;
+// 				light.shadow.camera.bottom = -100;
+// 				light.shadow.camera.left = -120;
+// 				light.shadow.camera.right = 120;
+// 				scene.add( light );
+				var directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+				directionalLight.position.set(100, 350, 200);
+				scene.add(directionalLight);
+				var directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.7);
+				directionalLight2.position.set(-300, -100, -400);
+				scene.add(directionalLight2);
+				var directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.3);
+				directionalLight3.position.set(10, 300, 30);
+				scene.add(directionalLight3);
+				var point = new THREE.PointLight(0xffffff, 0.5);
+				point.position.set(400, 150, 300);
+				scene.add(point);
+				var ambient = new THREE.AmbientLight(0xffffff, 0.5);
+				scene.add(ambient);
+				// scene.add( new THREE.CameraHelper( light.shadow.camera ) );
+
+
+				// ground  网格
+// 				var mesh = new THREE.Mesh( new THREE.PlaneGeometry( 2000, 2000 ), new THREE.MeshPhongMaterial( { color: 0x999999, depthWrite: false } ) );
+// 				mesh.rotation.x = - Math.PI / 2;
+// 				mesh.receiveShadow = true;
+// 				scene.add( mesh );
+// 
+// 				var grid = new THREE.GridHelper( 2000, 20, 0x000000, 0x000000 );
+// 				grid.material.opacity = 0.2;
+// 				grid.material.transparent = true;
+// 				scene.add( grid );
+
+				// model
+                let build=new THREE.Group();
+				var loader = new THREE.FBXLoader();
+				//loader.load( 'models/fbx/Samba Dancing.fbx', function ( object ) {
+					
+			
+				
+                loader.load( fileArr[index].data.model, function ( object ) {
+					scene.add( object ); 
+					//onProgress();
+					vm.progressBool = false
+					vm.$message({
+					  message: fileArr[index].data.name + '模型加载完成',  
+					  type: 'success',
+					  center: true, 
+					});
+						var box3 = new THREE.Box3()
+						box3.expandByObject(object)
+						var v3 = new THREE.Vector3()
+						box3.getSize(v3)
+						function num() {
+						  var max;
+						  if (v3.x > v3.y) {
+							max = v3.x
+						  } else {
+							max = v3.y
+						  }
+						  if (max > v3.z) {} else {
+							max = v3.z
+						  }
+						  return max;
+						}
+						var S = 100 / num()
+						object.scale.set(S, S, S)
+						var newBox3 = new THREE.Box3()
+						newBox3.expandByObject(object)
+						var center = new THREE.Vector3()
+						newBox3.getCenter(center)
+						object.position.x = object.position.x - center.x
+						object.position.y = object.position.y - center.y
+						object.position.z = object.position.z - center.z
+					},onProgress); 
+			
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				renderer.shadowMap.enabled = true;
+				container.appendChild( renderer.domElement );
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+				// // stats
+				// stats = new Stats();
+				// container.appendChild( stats.dom );
+
+			}
+			
+			
+			// currentModel = modelArr[0];
+			// vm.currentModel = modelArr[0];
+			// vm.currentModelData = vm.currentModel.data;
+			//render();
+			var vm = new Vue({
+			  el: "#app",
+			  data: {
+			    progressValue: 0,
+			    progressBool: true,
+			    num: 0,
+			    width: window.innerWidth,
+			    height: window.innerHeight,
+			    currentModel: null,
+			    currentModelData: null,
+			    left: 0,
+			    top: 0,
+			    bool: false,
+			  },
+			  methods: {
+			    zhouClick: function() {
+					controls.reset();
+			    },
+			    questionClick: function() {
+					var context = document.getElementById('context').innerHTML
+					this.$alert(context, '器材讲解', {
+					dangerouslyUseHTMLString: true
+					});
+			    },
+				tishiClick: function() {
+					var tishi_wb = document.getElementById('tishi_wb').innerHTML
+					this.$alert(tishi_wb, '操作说明', {
+					dangerouslyUseHTMLString: true
+					});
+				},
+			  },
+			  created: function() {
+			    this.currentModelData = fileArr[index].data
+			  }
+			})
+
+			function onWindowResize() {
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+				renderer.setSize( window.innerWidth, window.innerHeight );
+			}
+
+			function animate() {
+				requestAnimationFrame( animate );
+				var delta = clock.getDelta();
+				if (mixer) mixer.update( delta );
+				renderer.render( scene, camera );
+				// stats.update();
+			}
+		</script>
+	</body>
+</html>

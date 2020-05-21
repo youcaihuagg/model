@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta charset="UTF-8" >
+  <meta content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no" name="viewport">
+  <title>消防设施设备展示</title>
+  <script src="javascript/jquery-1.8.3.min.js"></script>
+  <!--引入three.js三维引擎-->
+  <script src="javascript/three.min92.js"></script>
+  <!-- 引入threejs扩展控件OrbitControls.js -->
+  <script src="javascript/OrbitControls.js"></script>
+  <!-- 引入fbx模型加载库FBXLoader -->
+  <script src="javascript/FBXLoader.js"></script>
+  <!-- 辅助文件 -->
+  <script src="javascript/inflate.min.js"></script>
+  <!-- 引入前端框架vue.js -->
+  <script src="javascript/vue@2.5.16.min.js"></script>
+  <script src="javascript/index.js"></script>
+  <link rel="stylesheet" href="css/index.css">
+  <script src="javascript/data.js"></script>
+</head>
+<body>
+    <div id="app" z-index="105">
+		<div class="title">
+			{{ currentModelData.name }}
+		</div>
+		<div class="yuyin" circle @click.stop="zhouClick()">
+			复位
+		</div>
+		<div class="wenzi" circle @click.stop="questionClick()">
+			讲解
+		</div>
+		<div class="banquan">
+			Copyright © 2020 华诺联动 All Rights Reserved.
+		</div>
+		<div class="shuiyin">
+			<img src="image/xfx.png" />
+		</div>
+		<div id="context" style="display:none;">
+			<div>
+				<audio src="音频/二氧化碳灭火器.mp3" controls="controls"></audio>
+			</div>
+			{{ currentModelData.introduction }}
+		</div>
+		<div class="tishi" circle @click.stop="tishiClick()">
+		    <i><img src="./htmlimg/帮助.png" alt="" width="20" height="20"></i>
+		</div>
+		<div id="tishi_wb" style="display: none;">
+			1.旋转：按住左键不放上下左右拖动，可以旋转整个场景
+			<br><br>
+			2.缩放：滚动鼠标中键可以缩放模型
+			<br><br>
+			3.交互：通过UI按钮可以和对三维模型进行交互操作，预览模型相关信息
+		</div>
+	</div>
+	
+  <script>
+    var scene = new THREE.Scene();
+    var ViewGroup = new THREE.Group();
+    scene.add(ViewGroup)
+    var textureLoader = new THREE.TextureLoader();
+    var texture = textureLoader.load('./贴图/背景/03.jpg');
+    var loader = new THREE.FBXLoader();
+    var textureCube = new THREE.CubeTextureLoader()
+    function onProgress(xhr) {
+      vm.progressBool = true
+      console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+      vm.$data.progressValue = Math.floor(xhr.loaded / xhr.total * 100)
+      if (vm.progressValue === 100) {
+        vm.$data.progressValue = 0
+      }
+    }
+    var fileArr = data()
+    var modelArr = []
+    function loadFile(filePath, informationObj) {
+      return new Promise(function(resolve, reject) {
+        loader.load(filePath, function(data) {
+            vm.progressBool = false
+            vm.$message({
+              message: informationObj.fileName + '模型加载完成',
+              type: 'success',
+              center: true, 
+            });
+            load(data, informationObj)
+            resolve(data);
+          },
+          onProgress,
+          function(error) {
+            reject(error);
+          });
+      });
+    }
+    async function 串行异步请求() {
+      for (let i = 0; i < fileArr.length; i++) {
+        var obj = await loadFile("./模型/" + fileArr[i].fileName + ".fbx", fileArr[i]);
+      }
+	  var obj = await loadFile("./模型/" + fileArr[0].fileName + ".fbx", fileArr[0]);
+    }
+    串行异步请求();
+    function load(Obj, informationObj) {
+      var obj = Obj.children[0]
+      obj.data = informationObj.data;
+      modelArr.push(obj)
+      // obj.rotateX(Math.PI / 2)
+      // obj.traverse(function(object) {
+      //   if (object.type === 'Mesh') {
+      //     var color;
+      //     if (object.material.color === undefined) {
+      //       color = new THREE.Color(1, 1, 1)
+      //     } else {
+      //       color = object.material.color
+      //     }
+      //     object.material = new THREE.MeshPhysicalMaterial({
+      //       color: color,
+      //       metalness: 1.0,
+      //       roughness: 0.6,
+      //       envMap: textureCube,
+      //     })
+      //   }
+      // })
+      var box3 = new THREE.Box3()
+      box3.expandByObject(obj)
+      var v3 = new THREE.Vector3()
+      box3.getSize(v3)
+      function num() {
+        var max;
+        if (v3.x > v3.y) {
+          max = v3.x
+        } else {
+          max = v3.y
+        }
+        if (max > v3.z) {} else {
+          max = v3.z
+        }
+        return max;
+      }
+      var S = 100 / num()
+      obj.scale.set(S, S, S)
+      var newBox3 = new THREE.Box3()
+      newBox3.expandByObject(obj)
+      var center = new THREE.Vector3()
+      newBox3.getCenter(center)
+      obj.position.x = obj.position.x - center.x
+      obj.position.y = obj.position.y - center.y
+      obj.position.z = obj.position.z - center.z
+      // if (obj.data.name === '灭火器') {
+        ViewGroup.add(modelArr[0]);
+        currentModel = modelArr[0];
+        scene.updateMatrixWorld(true);
+        var worldPosition = new THREE.Vector3();
+        modelArr[0].getWorldPosition(worldPosition)
+        var standardVector = worldPosition.project(camera);
+        // var a = window.innerWidth / 2;
+        // var b = window.innerHeight / 2;
+        // vm.left = Math.round(standardVector.x * a + a);
+        // vm.top = Math.round(-standardVector.y * b + b) - 100;
+        // vm.bool = true;
+        vm.currentModel = modelArr[0];
+        vm.currentModelData = vm.currentModel.data;
+		render();
+      // }
+	  
+	  
+	  
+    // 非位置音频可用于不考虑位置的背景音乐
+	// 创建一个监听者
+	var listener = new THREE.AudioListener();
+	// camera.add( listener );
+	// 创建一个非位置音频对象  用来控制播放
+	var audio = new THREE.Audio(listener);
+	// 创建一个音频加载器对象
+	var audioLoader = new THREE.AudioLoader();
+	// 加载音频文件，返回一个音频缓冲区对象作为回调函数参数
+	audioLoader.load('sounds/Project_Utopia.ogg', function(AudioBuffer) {
+	  // console.log(AudioBuffer)
+	  // 音频缓冲区对象关联到音频对象audio
+	  audio.setBuffer(AudioBuffer);
+	  audio.setLoop(true); //是否循环
+	  audio.setVolume(0.5); //音量
+	  // 播放缓冲区中的音频数据
+	  audio.play(); //play播放、stop停止、pause暂停
+	});
+    }
+    var directionalLight = new THREE.DirectionalLight(0xffffff, 0.9);
+    directionalLight.position.set(100, 350, 200);
+    scene.add(directionalLight);
+    var directionalLight2 = new THREE.DirectionalLight(0xffffff, 0.7);
+    directionalLight2.position.set(-300, -100, -400);
+    scene.add(directionalLight2);
+    var directionalLight3 = new THREE.DirectionalLight(0xffffff, 0.3);
+    directionalLight3.position.set(10, 300, 30);
+    scene.add(directionalLight3);
+    var point = new THREE.PointLight(0xffffff, 0.5);
+    point.position.set(400, 150, 300);
+    scene.add(point);
+    var ambient = new THREE.AmbientLight(0xffffff, 0.5);
+    scene.add(ambient);
+    var width = window.innerWidth;
+    var height = window.innerHeight;
+    var k = width / height;
+    var s = 70;
+    var camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+    camera.position.set(162, 164, 341);
+    var length = camera.position.length()
+    camera.lookAt(scene.position);
+    var renderer = new THREE.WebGLRenderer({
+      antialias: true
+    });
+    renderer.setSize(width, height);
+    renderer.setClearColor(0x222222, 1);
+    document.body.appendChild(renderer.domElement);
+    function render() {
+      renderer.render(scene, camera);
+    }
+    render();
+    var controls = new THREE.OrbitControls(camera);
+    controls.addEventListener('change', function() {
+      var worldPosition = new THREE.Vector3();
+      vm.currentModel.getWorldPosition(worldPosition)
+      var standardVector = worldPosition.project(camera);
+      // var a = window.innerWidth / 2;
+      // var b = window.innerHeight / 2;
+      // vm.left = Math.round(standardVector.x * a + a);
+      // vm.top = Math.round(-standardVector.y * b + b) - 100;
+      render();
+    });
+    var vm = new Vue({
+      el: "#app",
+      data: {
+        progressValue: 0,
+        progressBool: true,
+        num: 0,
+        width: window.innerWidth,
+        height: window.innerHeight,
+        currentModel: null,
+        currentModelData: null,
+        left: 0,
+        top: 0,
+        bool: false,
+      },
+      methods: {
+        nextClick: function() {
+          vm.bool = true
+          if (this.num < modelArr.length - 1) {
+            this.num += 1
+          }
+        },
+        upClick: function() {
+          vm.bool = true
+          if (this.num > 0) {
+            this.num -= 1
+          }
+        },
+        MaxClick: function() {
+          camera.zoom = 1
+          camera.updateProjectionMatrix();
+          render();
+        },
+        SizeClick: function() {
+          if (this.SizeBool) {
+            scene.add(SizeGroup)
+            this.SizeBool = false
+          } else {
+            scene.remove(SizeGroup)
+            this.SizeBool = true
+          }
+          render();
+        },
+        SmallerClick: function() {
+          scene.scale.x -= 0.1
+          scene.scale.y -= 0.1
+          scene.scale.z -= 0.1
+          render();
+        },
+        GreaterClick: function() {
+          scene.scale.x += 0.1
+          scene.scale.y += 0.1
+          scene.scale.z += 0.1
+          render();
+        },
+        zhengClick: function() {
+          vm.bool = false
+          camera.position.set(0, 0, length);
+          camera.lookAt(scene.position);
+          render();
+        },
+        fuClick: function() {
+          camera.position.set(0, length, 0);
+          camera.lookAt(scene.position);
+          vm.bool = false
+          render();
+        },
+        ceClick: function() {
+          camera.position.set(-length, 0, 0);
+          camera.lookAt(scene.position);
+          vm.bool = false
+          render();
+        },
+        zhouClick: function() {
+			var width = window.innerWidth;
+			var height = window.innerHeight;
+			var k = width / height;
+			var s = 70;
+			camera = new THREE.OrthographicCamera(-s * k, s * k, s, -s, 1, 1000);
+			camera.position.set(162, 164, 341);
+			var length = camera.position.length()
+			camera.lookAt(scene.position);
+          // var vec3 = new THREE.Vector3(1, 1, 1).normalize();
+          //camera.position.set(162, 164, 341);
+          //camera.lookAt(scene.position);
+          vm.bool = false
+          render();
+        },
+        questionClick: function() {
+          var context = document.getElementById('context').innerHTML
+          this.$alert(context, '器材讲解', {
+            dangerouslyUseHTMLString: true
+          });
+        },
+		tishiClick: function() {
+		  var tishi_wb = document.getElementById('tishi_wb').innerHTML
+		  this.$alert(tishi_wb, '操作说明', {
+		    dangerouslyUseHTMLString: true
+		  });
+		},
+      },
+      watch: {
+        num: function(value) {
+          ViewGroup.children[0] = modelArr[value];
+          this.currentModel = modelArr[value]
+          this.currentModelData = this.currentModel.data
+          scene.updateMatrixWorld(true);
+          var worldPosition = new THREE.Vector3();
+          modelArr[value].getWorldPosition(worldPosition)
+          var standardVector = worldPosition.project(camera);
+          // var a = window.innerWidth / 2;
+          // var b = window.innerHeight / 2;
+          // this.left = Math.round(standardVector.x * a + a);
+          // this.top = Math.round(-standardVector.y * b + b) - 250;
+          render();
+        }
+      },
+      created: function() {
+        this.currentModelData = fileArr[0].data
+      }
+    })
+    window.onresize = function() {
+      vm.bool = false
+      vm.width = window.innerWidth;
+      vm.height = window.innerHeight;
+      renderer.setSize(window.innerWidth, window.innerHeight);
+      k = (window.innerWidth) / (window.innerHeight);
+      camera.left = -s * k;
+      camera.right = s * k;
+      camera.top = s;
+      camera.bottom = -s;
+      camera.updateProjectionMatrix();
+      render();
+    };
+	$('body').on('touchmove','.slidebg',function () {
+	    $(document.body).on('touchmove.prevUC', function(e) {
+	        e.preventDefault();
+	    });
+	});
+	$('body').on('touchend','.slidebg',function () {
+	    $(document.body).off('touchmove.prevUC');
+	});
+  </script>
+</body>
+
+</html>

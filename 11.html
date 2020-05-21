@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<title>three.js webgl - FBX loader</title>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+		<!-- <link type="text/css" rel="stylesheet" href="main.css"> -->
+		<script src="js/three.min92.js"></script>
+		<script src="js/inflate.min.js"></script>
+		<script src="js/FBXLoader.js"></script>
+		<script src="js/OrbitControls.js"></script>
+		<script src="js/stats.min.js"></script>
+		
+		<!-- <script src="js/Detector.js"></script> -->
+		<!-- <script src="js/data.js"></script> -->
+		
+		<!-- <script src="js/jss/FBXLoader.js"></script>
+		<script src="js/jss/NURBSCurve.js"></script>
+		<script src="js/jss/NURBSUtils.js"></script>
+		<script src="js/jss/OrbitControls.js"></script>
+		<script src="js/jss/inflate.module.min.js"></script>
+		<script src="js/jss/stats.module.js"></script>
+		<script src="js/jss/three.module.js"></script> -->
+		
+		<style>
+			body {
+				margin: 0;
+				background-color: #000;
+				color: #fff;
+				font-family: Monospace;
+				font-size: 13px;
+				line-height: 24px;
+				overscroll-behavior: none;
+			}
+			
+			a {
+				color: #ff0;
+				text-decoration: none;
+			}
+			
+			a:hover {
+				text-decoration: underline;
+			}
+			
+			button {
+				cursor: pointer;
+				text-transform: uppercase;
+			}
+			
+			canvas {
+				display: block;
+			}
+			
+			#info {
+				position: absolute;
+				top: 0px;
+				width: 100%;
+				padding: 10px;
+				box-sizing: border-box;
+				text-align: center;
+				-moz-user-select: none;
+				-webkit-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+				pointer-events: none;
+				z-index: 1; /* TODO Solve this in HTML */
+			}
+			
+			a, button, input, select {
+				pointer-events: auto;
+			}
+			
+			.dg.ac {
+				-moz-user-select: none;
+				-webkit-user-select: none;
+				-ms-user-select: none;
+				user-select: none;
+				z-index: 2 !important; /* TODO Solve this in HTML */
+			}
+		</style>
+	</head>
+
+	<body>
+		
+		
+		<script type="module">
+
+			var container, stats, controls;
+			var camera, scene, renderer, light;
+
+			init();
+			animate();
+
+			function init() {
+
+				container = document.createElement( 'div' );
+				document.body.appendChild( container );
+
+				camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 2000 );
+				camera.position.set( 2, 18, 28 );
+
+				scene = new THREE.Scene();
+
+				light = new THREE.HemisphereLight( 0xffffff, 0x444444 );
+				light.position.set( 0, 1, 0 );
+				scene.add( light );
+
+				light = new THREE.DirectionalLight( 0xffffff );
+				light.position.set( 0, 1, 0 );
+				scene.add( light );
+
+				// grid
+				var gridHelper = new THREE.GridHelper( 28, 28, 0x303030, 0x303030 );
+				scene.add( gridHelper );
+
+				// stats
+				stats = new Stats();
+				container.appendChild( stats.dom );
+
+				// model
+				var loader = new THREE.FBXLoader();
+				loader.load( '模型/ball.fbx', function ( object ) {
+
+					scene.add( object );
+
+				} );
+
+				renderer = new THREE.WebGLRenderer();
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				container.appendChild( renderer.domElement );
+
+				controls = new THREE.OrbitControls( camera, renderer.domElement );
+				controls.target.set( 0, 12, 0 );
+				controls.update();
+
+				window.addEventListener( 'resize', onWindowResize, false );
+
+			}
+
+			function onWindowResize() {
+
+				camera.aspect = window.innerWidth / window.innerHeight;
+				camera.updateProjectionMatrix();
+
+				renderer.setSize( window.innerWidth, window.innerHeight );
+
+			}
+
+			//
+
+			function animate() {
+
+				requestAnimationFrame( animate );
+
+				renderer.render( scene, camera );
+
+				stats.update();
+
+			}
+
+		</script>
+
+	</body>
+</html>
